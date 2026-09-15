@@ -1,0 +1,22 @@
+### 게시판 개설 신청
+POST http://localhost:8080/board-applications
+Content-Type: application/json
+
+{
+  "title": "진격의 거인",
+  "description": "진격의 거인 이야기 게시판",
+  "imagePath": "/images/aot.jpg"
+}
+
+### 내 게시판 개설 신청 조회
+GET http://localhost:8080/me/board-applications
+
+### 게시판 개설 신청 실패 - 제목 없음
+POST http://localhost:8080/board-applications
+Content-Type: application/json
+
+{
+  "title": "",
+  "description": "제목 없는 신청",
+  "imagePath": "/images/test.jpg"
+}
