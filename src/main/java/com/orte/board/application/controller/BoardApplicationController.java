@@ -17,7 +17,7 @@ public class BoardApplicationController {
 
     private final BoardApplicationService boardApplicationService;
 
-    @PostMapping("/board-applications")
+    @PostMapping("/api/board-applications")
     public ResponseEntity<BoardApplicationResponse> create(
             @Valid @RequestBody BoardApplicationCreateRequest request
     ) {
@@ -29,7 +29,7 @@ public class BoardApplicationController {
                 .body(response);
     }
 
-    @GetMapping("/me/board-applications")
+    @GetMapping("/api/me/board-applications")
     public ResponseEntity<List<BoardApplicationResponse>> getMyApplications() {
 
         List<BoardApplicationResponse> responses =

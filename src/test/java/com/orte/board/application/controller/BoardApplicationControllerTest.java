@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(username = "test@example.com", roles = "USER")
 class BoardApplicationControllerTest {
 
     @Autowired
@@ -36,6 +38,7 @@ class BoardApplicationControllerTest {
     private BoardApplicationRepository boardApplicationRepository;
 
     @Test
+
     @DisplayName("게시판 개설 신청에 성공한다")
     void createBoardApplication() throws Exception {
         BoardApplicationCreateRequest request =
@@ -45,7 +48,7 @@ class BoardApplicationControllerTest {
                         "/images/aot.jpg"
                 );
 
-        mockMvc.perform(post("/board-applications")
+        mockMvc.perform(post("/api/board-applications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -90,7 +93,7 @@ class BoardApplicationControllerTest {
                 )
         );
 
-        mockMvc.perform(get("/me/board-applications"))
+        mockMvc.perform(get("/api/me/board-applications"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -110,7 +113,7 @@ class BoardApplicationControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/board-applications")
+        mockMvc.perform(post("/api/board-applications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andDo(print())
@@ -118,7 +121,7 @@ class BoardApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.message").value("입력값을 확인해 주세요."))
-                .andExpect(jsonPath("$.path").value("/board-applications"))
+                .andExpect(jsonPath("$.path").value("/api/board-applications"))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.errors.title")
                         .value("게시판 제목은 필수입니다."));
@@ -138,7 +141,7 @@ class BoardApplicationControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/board-applications")
+        mockMvc.perform(post("/api/board-applications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
@@ -163,7 +166,7 @@ class BoardApplicationControllerTest {
               "description": "게시판 설명"
             """;
 
-        mockMvc.perform(post("/board-applications")
+        mockMvc.perform(post("/api/board-applications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidRequest))
                 .andDo(print())
@@ -171,7 +174,7 @@ class BoardApplicationControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                 .andExpect(jsonPath("$.message").value("요청 본문을 확인해 주세요."))
-                .andExpect(jsonPath("$.path").value("/board-applications"))
+                .andExpect(jsonPath("$.path").value("/api/board-applications"))
                 .andExpect(jsonPath("$.timestamp").exists());
 
         assertThat(boardApplicationRepository.count())
@@ -192,7 +195,7 @@ class BoardApplicationControllerTest {
             }
             """;
 
-        mockMvc.perform(post("/board-applications")
+        mockMvc.perform(post("/api/board-applications")
                         .contentType(MediaType.TEXT_PLAIN)
                         .content(request))
                 .andDo(print())
@@ -201,7 +204,7 @@ class BoardApplicationControllerTest {
                 .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
                 .andExpect(jsonPath("$.message")
                         .value("지원하지 않는 Content-Type입니다."))
-                .andExpect(jsonPath("$.path").value("/board-applications"))
+                .andExpect(jsonPath("$.path").value("/api/board-applications"))
                 .andExpect(jsonPath("$.timestamp").exists());
 
         assertThat(boardApplicationRepository.count())

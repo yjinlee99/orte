@@ -1,5 +1,5 @@
 ### 게시판 개설 신청
-POST http://localhost:8080/board-applications
+POST http://localhost:8080/api/board-applications
 Content-Type: application/json
 
 {
@@ -9,10 +9,10 @@ Content-Type: application/json
 }
 
 ### 내 게시판 개설 신청 조회
-GET http://localhost:8080/me/board-applications
+GET http://localhost:8080/api/me/board-applications
 
 ### 게시판 개설 신청 실패 - 제목 없음
-POST http://localhost:8080/board-applications
+POST http://localhost:8080/api/board-applications
 Content-Type: application/json
 
 {

@@ -36,17 +36,19 @@ public class GlobalExceptionHandler {
             );
         }
 
+        ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
+
         ValidationErrorResponse response = new ValidationErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "VALIDATION_FAILED",
-                "입력값을 확인해 주세요.",
+                errorCode.getStatus().value(),
+                errorCode.getCode(),
+                errorCode.getMessage(),
                 request.getRequestURI(),
                 LocalDateTime.now(),
                 errors
         );
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
+                .status(errorCode.getStatus())
                 .body(response);
     }
 
@@ -55,16 +57,15 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException e,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.BAD_REQUEST.value(),
-                "INVALID_REQUEST",
-                "요청 본문을 확인해 주세요.",
-                request.getRequestURI(),
-                LocalDateTime.now()
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+
+        ErrorResponse response = createErrorResponse(
+                errorCode,
+                request
         );
 
         return ResponseEntity
-                .badRequest()
+                .status(errorCode.getStatus())
                 .body(response);
     }
 
@@ -73,16 +74,32 @@ public class GlobalExceptionHandler {
             HttpMediaTypeNotSupportedException e,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(),
-                "UNSUPPORTED_MEDIA_TYPE",
-                "지원하지 않는 Content-Type입니다.",
-                request.getRequestURI(),
-                LocalDateTime.now()
+        ErrorCode errorCode = ErrorCode.UNSUPPORTED_MEDIA_TYPE;
+
+        ErrorResponse response = createErrorResponse(
+                errorCode,
+                request
         );
 
         return ResponseEntity
-                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .status(errorCode.getStatus())
+                .body(response);
+    }
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessException(
+            BusinessException e,
+            HttpServletRequest request
+    ) {
+        ErrorCode errorCode = e.getErrorCode();
+
+        ErrorResponse response = createErrorResponse(
+                errorCode,
+                request
+        );
+
+        return ResponseEntity
+                .status(errorCode.getStatus())
                 .body(response);
     }
 
@@ -98,16 +115,28 @@ public class GlobalExceptionHandler {
                 e
         );
 
-        ErrorResponse response = new ErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "INTERNAL_SERVER_ERROR",
-                "서버 내부 오류가 발생했습니다.",
-                request.getRequestURI(),
-                LocalDateTime.now()
+        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+
+        ErrorResponse response = createErrorResponse(
+                errorCode,
+                request
         );
 
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .status(errorCode.getStatus())
                 .body(response);
+    }
+
+    private ErrorResponse createErrorResponse(
+            ErrorCode errorCode,
+            HttpServletRequest request
+    ) {
+        return new ErrorResponse(
+                errorCode.getStatus().value(),
+                errorCode.getCode(),
+                errorCode.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
     }
 }
