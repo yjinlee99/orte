@@ -1,5 +1,9 @@
 package com.orte.member.controller;
 
+import com.orte.auth.service.AuthService;
+import com.orte.member.dto.LoginRequest;
+import com.orte.member.dto.LoginResponse;
+import com.orte.member.dto.RefreshRequest;
 import com.orte.member.dto.SignupRequest;
 import com.orte.member.dto.SignupResponse;
 import com.orte.member.service.MemberService;
@@ -15,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final MemberService memberService;
+    private final AuthService authService;
 
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(
@@ -25,5 +30,32 @@ public class AuthController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(new SignupResponse(memberId));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.login(request)
+        );
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(
+            @Valid @RequestBody RefreshRequest request
+    ) {
+        return ResponseEntity.ok(
+                authService.refresh(request.refreshToken())
+        );
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @Valid @RequestBody RefreshRequest request
+    ) {
+        authService.logout(request.refreshToken());
+
+        return ResponseEntity.noContent().build();
     }
 }

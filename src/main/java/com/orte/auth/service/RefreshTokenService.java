@@ -5,6 +5,7 @@ import com.orte.auth.exception.InvalidRefreshTokenException;
 import com.orte.auth.repository.RefreshTokenRepository;
 import com.orte.auth.util.RefreshTokenHasher;
 import com.orte.member.entity.Member;
+import com.orte.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +18,15 @@ import java.time.Instant;
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public void save(Member member, String refreshToken, Instant expiresAt) {
+    public void save(Member member, String refreshToken) {
         String tokenHash = RefreshTokenHasher.hash(refreshToken);
+
+        Instant expiresAt = jwtTokenProvider
+                .getClaims(refreshToken)
+                .getExpiration()
+                .toInstant();
 
         RefreshToken token = new RefreshToken(
                 member,
@@ -49,4 +56,5 @@ public class RefreshTokenService {
 
         refreshTokenRepository.deleteByTokenHash(tokenHash);
     }
+
 }
