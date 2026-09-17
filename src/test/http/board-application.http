@@ -1,22 +1,19 @@
-### 게시판 개설 신청
-POST http://localhost:8080/api/board-applications
+@baseUrl = http://localhost:8080
+@email = test@test.com
+@password = test1234
+@nickname = 방토
+
+### 게시판 신청
+POST {{baseUrl}}/api/board-applications
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "title": "진격의 거인",
-  "description": "진격의 거인 이야기 게시판",
-  "imagePath": "/images/aot.jpg"
+  "title": "귀멸의 칼날",
+  "description": "귀멸의 칼날 이야기를 하는 게시판입니다.",
+  "imagePath": null
 }
 
-### 내 게시판 개설 신청 조회
-GET http://localhost:8080/api/me/board-applications
-
-### 게시판 개설 신청 실패 - 제목 없음
-POST http://localhost:8080/api/board-applications
-Content-Type: application/json
-
-{
-  "title": "",
-  "description": "제목 없는 신청",
-  "imagePath": "/images/test.jpg"
-}
+### 내 게시판 신청 조회
+GET {{baseUrl}}/api/me/board-applications
+Authorization: Bearer {{accessToken}}

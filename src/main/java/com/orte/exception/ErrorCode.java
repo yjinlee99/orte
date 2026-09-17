@@ -38,6 +38,11 @@ public enum ErrorCode {
             "이미 사용 중인 닉네임입니다."
     ),
 
+    INVALID_CREDENTIALS(
+            HttpStatus.UNAUTHORIZED,
+            "이메일 또는 비밀번호가 올바르지 않습니다."
+    ),
+
     // Refresh Token
     INVALID_REFRESH_TOKEN(
             HttpStatus.UNAUTHORIZED,

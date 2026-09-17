@@ -1,11 +1,12 @@
 package com.orte.auth.service;
 
 import com.orte.auth.entity.RefreshToken;
+import com.orte.auth.exception.InvalidCredentialsException;
 import com.orte.auth.exception.InvalidRefreshTokenException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
-import com.orte.member.dto.LoginRequest;
-import com.orte.member.dto.LoginResponse;
+import com.orte.auth.dto.LoginRequest;
+import com.orte.auth.dto.TokenResponse;
 import com.orte.member.entity.Member;
 import com.orte.member.repository.MemberRepository;
 import com.orte.security.CustomUserDetails;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,14 +29,21 @@ public class AuthService {
     private final RefreshTokenService refreshTokenService;
     private final MemberRepository memberRepository;
 
-    public LoginResponse login(LoginRequest request) {
+    public TokenResponse login(LoginRequest request) {
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.email(),
-                        request.password()
-                )
-        );
+        Authentication authentication;
+
+        try {
+            authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    request.email(),
+                                    request.password()
+                            )
+                    );
+        } catch (AuthenticationException e) {
+            throw new InvalidCredentialsException();
+        }
 
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
@@ -46,17 +55,19 @@ public class AuthService {
                 jwtTokenProvider.createRefreshToken(userDetails);
 
         Member member =
-                memberRepository.getReferenceById(userDetails.getMemberId());
+                memberRepository.getReferenceById(
+                        userDetails.getMemberId()
+                );
 
         refreshTokenService.save(member, refreshToken);
 
-        return new LoginResponse(
+        return new TokenResponse(
                 accessToken,
                 refreshToken
         );
     }
 
-    public LoginResponse refresh(String refreshToken) {
+    public TokenResponse refresh(String refreshToken) {
 
         try {
             Claims claims = jwtTokenProvider.getClaims(refreshToken);
@@ -89,7 +100,7 @@ public class AuthService {
         // 새 Refresh Token 저장
         refreshTokenService.save(member, newRefreshToken);
 
-        return new LoginResponse(
+        return new TokenResponse(
                 newAccessToken,
                 newRefreshToken
         );

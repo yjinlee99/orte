@@ -1,9 +1,9 @@
-package com.orte.member.controller;
+package com.orte.auth.controller;
 
 import com.orte.auth.service.AuthService;
-import com.orte.member.dto.LoginRequest;
-import com.orte.member.dto.LoginResponse;
-import com.orte.member.dto.RefreshRequest;
+import com.orte.auth.dto.LoginRequest;
+import com.orte.auth.dto.TokenResponse;
+import com.orte.auth.dto.RefreshRequest;
 import com.orte.member.dto.SignupRequest;
 import com.orte.member.dto.SignupResponse;
 import com.orte.member.service.MemberService;
@@ -33,7 +33,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
+    public ResponseEntity<TokenResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
         return ResponseEntity.ok(
@@ -42,7 +42,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<LoginResponse> refresh(
+    public ResponseEntity<TokenResponse> refresh(
             @Valid @RequestBody RefreshRequest request
     ) {
         return ResponseEntity.ok(
