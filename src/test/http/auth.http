@@ -1,8 +1,53 @@
-POST http://localhost:8080/api/auth/signup
+@baseUrl = http://localhost:8080
+@email = test@test.com
+@password = test1234
+@nickname = 방토
+
+### 1. 회원가입
+POST {{baseUrl}}/api/auth/signup
 Content-Type: application/json
 
 {
-  "email": "test@example.com",
-  "password": "password123",
-  "nickname": "방토"
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "nickname": "{{nickname}}"
 }
+
+### 2. 로그인
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("accessToken", response.body.accessToken);
+    client.global.set("refreshToken", response.body.refreshToken);
+%}
+
+### 3. 토큰 재발급
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+    client.global.set("accessToken", response.body.accessToken);
+    client.global.set("refreshToken", response.body.refreshToken);
+%}
+
+### 4. 로그아웃
+POST {{baseUrl}}/api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 현재 저장된 토큰 확인용
+# accessToken = {{accessToken}}
+# refreshToken = {{refreshToken}}

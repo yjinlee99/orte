@@ -1,6 +1,6 @@
-package com.orte.member.dto;
+package com.orte.auth.dto;
 
-public record LoginResponse(
+public record TokenResponse(
         String accessToken,
         String refreshToken
 ) {

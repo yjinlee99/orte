@@ -1,0 +1,4 @@
+jwt:
+  secret: MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=
+  access-expiration: 1800000
+  refresh-expiration: 604800000

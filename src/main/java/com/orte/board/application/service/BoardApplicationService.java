@@ -17,16 +17,17 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class BoardApplicationService {
 
-    private static final Long TEST_USER_ID = 1L;
-
     private final BoardApplicationRepository boardApplicationRepository;
 
     // 게시판 개설 신청 생성
     @Transactional
-    public BoardApplicationResponse create(BoardApplicationCreateRequest request) {
+    public BoardApplicationResponse create(
+            Long applicantId,
+            BoardApplicationCreateRequest request
+    ) {
 
         BoardApplication application = new BoardApplication(
-                TEST_USER_ID,
+                applicantId,
                 request.title(),
                 request.description(),
                 request.imagePath()
@@ -45,11 +46,13 @@ public class BoardApplicationService {
         return BoardApplicationResponse.from(savedApplication);
     }
 
-    // 내 게시판 신청 목록 보여주기
-    public List<BoardApplicationResponse> getMyApplications() {
+    // 내 게시판 신청 목록
+    public List<BoardApplicationResponse> getMyApplications(
+            Long applicantId
+    ) {
 
         return boardApplicationRepository
-                .findAllByApplicantIdOrderByCreatedAtDesc(TEST_USER_ID)
+                .findAllByApplicantIdOrderByCreatedAtDesc(applicantId)
                 .stream()
                 .map(BoardApplicationResponse::from)
                 .toList();
