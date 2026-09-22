@@ -49,11 +49,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String email = claims.getSubject();
+            Long memberId = Long.valueOf(claims.getSubject());
 
             CustomUserDetails userDetails =
-                    (CustomUserDetails) customUserDetailsService
-                            .loadUserByUsername(email);
+                    customUserDetailsService.loadUserByMemberId(memberId);
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(

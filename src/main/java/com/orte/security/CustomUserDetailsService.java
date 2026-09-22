@@ -23,4 +23,13 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return new CustomUserDetails(member);
     }
+
+    public CustomUserDetails loadUserByMemberId(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException("회원을 찾을 수 없습니다.")
+                );
+
+        return new CustomUserDetails(member);
+    }
 }

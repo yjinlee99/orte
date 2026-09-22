@@ -34,7 +34,7 @@ public class JwtTokenProvider {
         Date now = new Date();
 
         return Jwts.builder()
-                .subject(userDetails.getUsername())
+                .subject(String.valueOf(userDetails.getUsername()))
                 .claim("memberId", userDetails.getMemberId())
                 .claim(
                         "role",
@@ -54,7 +54,7 @@ public class JwtTokenProvider {
         Date now = new Date();
 
         return Jwts.builder()
-                .subject(userDetails.getUsername())
+                .subject(String.valueOf(userDetails.getUsername()))
                 .claim("tokenType", "REFRESH")
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + refreshExpiration))
