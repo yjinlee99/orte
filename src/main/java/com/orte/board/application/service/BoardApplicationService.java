@@ -29,8 +29,7 @@ public class BoardApplicationService {
         BoardApplication application = new BoardApplication(
                 applicantId,
                 request.title(),
-                request.description(),
-                request.imagePath()
+                request.description()
         );
 
         BoardApplication savedApplication =

@@ -8,7 +8,6 @@ public record BoardApplicationResponse(
         Long applicantId,
         String title,
         String description,
-        String imagePath,
         BoardApplicationStatus status
 ) {
 
@@ -18,7 +17,6 @@ public record BoardApplicationResponse(
                 application.getApplicantId(),
                 application.getTitle(),
                 application.getDescription(),
-                application.getImagePath(),
                 application.getStatus()
         );
     }

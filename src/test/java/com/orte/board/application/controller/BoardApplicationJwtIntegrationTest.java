@@ -1,4 +1,4 @@
-package com.orte.member.controller;
+package com.orte.board.application.controller;
 
 import com.orte.member.entity.Member;
 import com.orte.member.repository.MemberRepository;

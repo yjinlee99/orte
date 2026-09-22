@@ -71,8 +71,7 @@ class BoardApplicationControllerTest {
         BoardApplicationCreateRequest request =
                 new BoardApplicationCreateRequest(
                         "진격의 거인",
-                        "진격의 거인 이야기 게시판",
-                        "/images/aot.jpg"
+                        "진격의 거인 이야기 게시판"
                 );
 
         mockMvc.perform(post("/api/board-applications")
@@ -83,8 +82,6 @@ class BoardApplicationControllerTest {
                 .andExpect(jsonPath("$.title").value("진격의 거인"))
                 .andExpect(jsonPath("$.description")
                         .value("진격의 거인 이야기 게시판"))
-                .andExpect(jsonPath("$.imagePath")
-                        .value("/images/aot.jpg"))
                 .andExpect(jsonPath("$.applicantId")
                         .value(memberId))
                 .andExpect(jsonPath("$.status")
@@ -115,8 +112,7 @@ class BoardApplicationControllerTest {
                 new BoardApplication(
                         memberId,
                         "진격의 거인",
-                        "내 신청",
-                        "/images/aot.jpg"
+                        "내 신청"
                 )
         );
 
@@ -124,8 +120,7 @@ class BoardApplicationControllerTest {
                 new BoardApplication(
                         memberId + 100,
                         "원피스",
-                        "다른 사용자의 신청",
-                        "/images/onepiece.jpg"
+                        "다른 사용자의 신청"
                 )
         );
 
@@ -149,8 +144,7 @@ class BoardApplicationControllerTest {
         String request = """
                 {
                   "title": "",
-                  "description": "제목 없는 신청",
-                  "imagePath": "/images/test.jpg"
+                  "description": "제목 없는 신청"
                 }
                 """;
 
@@ -182,8 +176,7 @@ class BoardApplicationControllerTest {
         String request = """
                 {
                   "title": "",
-                  "description": "",
-                  "imagePath": "/images/test.jpg"
+                  "description": ""
                 }
                 """;
 
@@ -243,8 +236,7 @@ class BoardApplicationControllerTest {
         String request = """
                 {
                   "title": "진격의 거인",
-                  "description": "게시판 설명",
-                  "imagePath": "/images/aot.jpg"
+                  "description": "게시판 설명"
                 }
                 """;
 

@@ -8,8 +8,6 @@ public record BoardApplicationCreateRequest(
         String title,
 
         @NotBlank(message = "게시판 소개는 필수입니다.")
-        String description,
-
-        String imagePath
+        String description
 ) {
 }

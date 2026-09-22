@@ -25,8 +25,6 @@ public class BoardApplication {
     @Column(nullable = false, length = 1000)
     private String description;
 
-    private String imagePath;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BoardApplicationStatus status;
@@ -37,13 +35,11 @@ public class BoardApplication {
     public BoardApplication(
             Long applicantId,
             String title,
-            String description,
-            String imagePath
+            String description
     ) {
         this.applicantId = applicantId;
         this.title = title;
         this.description = description;
-        this.imagePath = imagePath;
         this.status = BoardApplicationStatus.PENDING;
         this.createdAt = LocalDateTime.now();
     }
