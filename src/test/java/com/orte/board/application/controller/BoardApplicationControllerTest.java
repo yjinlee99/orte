@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -42,6 +43,9 @@ class BoardApplicationControllerTest {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private CustomUserDetails userDetails;
     private Long memberId;
@@ -135,6 +139,8 @@ class BoardApplicationControllerTest {
                 .andExpect(jsonPath("$[0].title")
                         .value("진격의 거인"));
     }
+
+
 
     @Test
     @DisplayName("게시판 제목이 없으면 개설 신청에 실패한다")
