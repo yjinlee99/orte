@@ -284,4 +284,82 @@ class BoardApplicationControllerTest {
 
         assertThat(boardApplicationRepository.count()).isZero();
     }
+
+    @Test
+    @DisplayName("게시판 제목이 정확히 100자이면 개설 신청에 성공한다")
+    void createBoardApplicationWith100CharacterTitle() throws Exception {
+
+        String title = "가".repeat(100);
+
+        String request = """
+            {
+              "title": "%s",
+              "description": "게시판 설명"
+            }
+            """.formatted(title);
+
+        mockMvc.perform(post("/api/board-applications")
+                        .with(user(userDetails))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title")
+                        .value(title));
+
+        assertThat(boardApplicationRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("게시판 소개가 1000자를 초과하면 개설 신청에 실패한다")
+    void createBoardApplicationWithTooLongDescription() throws Exception {
+
+        String description = "가".repeat(1001);
+
+        String request = """
+            {
+              "title": "진격의 거인",
+              "description": "%s"
+            }
+            """.formatted(description);
+
+        mockMvc.perform(post("/api/board-applications")
+                        .with(user(userDetails))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code")
+                        .value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors.description")
+                        .value("게시판 소개는 1000자 이하로 입력해 주세요."));
+
+        assertThat(boardApplicationRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("게시판 소개가 1000자이면 개설 신청에 성공한다")
+    void createBoardApplicationWith1000CharacterDescription() throws Exception {
+
+        String description = "가".repeat(1000);
+
+        String request = """
+            {
+              "title": "진격의 거인",
+              "description": "%s"
+            }
+            """.formatted(description);
+
+        mockMvc.perform(post("/api/board-applications")
+                        .with(user(userDetails))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title")
+                        .value("진격의 거인"))
+                .andExpect(jsonPath("$.description")
+                        .value(description));
+
+        assertThat(boardApplicationRepository.count()).isEqualTo(1);
+    }
+
+
 }

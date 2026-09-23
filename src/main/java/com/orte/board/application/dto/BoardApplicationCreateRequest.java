@@ -10,6 +10,7 @@ public record BoardApplicationCreateRequest(
         String title,
 
         @NotBlank(message = "게시판 소개는 필수입니다.")
+        @Size(max = 1000, message = "게시판 소개는 1000자 이하로 입력해 주세요.")
         String description
 ) {
 }
