@@ -10,8 +10,7 @@ Content-Type: application/json
 
 {
   "title": "귀멸의 칼날",
-  "description": "귀멸의 칼날 이야기를 하는 게시판입니다.",
-  "imagePath": null
+  "description": "귀멸의 칼날 이야기를 하는 게시판입니다."
 }
 
 ### 내 게시판 신청 조회
