@@ -80,12 +80,22 @@ class JwtAuthenticationIntegrationTest {
                         .get("accessToken")
                         .asText();
 
-        char lastChar = accessToken.charAt(accessToken.length() - 1);
-        char replacement = lastChar == 'a' ? 'b' : 'a';
+        String[] tokenParts = accessToken.split("\\.");
+
+        String signature = tokenParts[2];
+
+        char firstChar = signature.charAt(0);
+        char replacement = firstChar == 'A' ? 'B' : 'A';
+
+        String tamperedSignature =
+                replacement + signature.substring(1);
 
         String tamperedToken =
-                accessToken.substring(0, accessToken.length() - 1)
-                        + replacement;
+                tokenParts[0]
+                        + "."
+                        + tokenParts[1]
+                        + "."
+                        + tamperedSignature;
 
         mockMvc.perform(get("/api/me/board-applications")
                         .header(

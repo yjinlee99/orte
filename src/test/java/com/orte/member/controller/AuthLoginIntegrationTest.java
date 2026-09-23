@@ -71,4 +71,25 @@ class AuthLoginIntegrationTest {
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
     }
+
+    @Test
+    @DisplayName("이메일과 비밀번호가 비어 있으면 400을 반환한다")
+    void loginWithBlankCredentialsReturnsBadRequest() throws Exception {
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "",
+                              "password": ""
+                            }
+                            """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code")
+                        .value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors.email")
+                        .value("이메일은 필수입니다."))
+                .andExpect(jsonPath("$.errors.password")
+                        .value("비밀번호는 필수입니다."));
+    }
 }
