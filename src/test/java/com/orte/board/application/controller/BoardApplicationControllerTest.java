@@ -280,7 +280,7 @@ class BoardApplicationControllerTest {
                 .andExpect(jsonPath("$.code")
                         .value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.errors.title")
-                        .value("게시판 제목은 255자 이하로 입력해 주세요."));
+                        .value("게시판 제목은 100자 이하로 입력해 주세요."));
 
         assertThat(boardApplicationRepository.count()).isZero();
     }
