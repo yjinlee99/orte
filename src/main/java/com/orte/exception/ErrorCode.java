@@ -43,6 +43,11 @@ public enum ErrorCode {
             "이메일 또는 비밀번호가 올바르지 않습니다."
     ),
 
+    AUTHENTICATION_REQUIRED(
+            HttpStatus.UNAUTHORIZED,
+            "인증이 필요합니다."
+    ),
+
     // Refresh Token
     INVALID_REFRESH_TOKEN(
             HttpStatus.UNAUTHORIZED,

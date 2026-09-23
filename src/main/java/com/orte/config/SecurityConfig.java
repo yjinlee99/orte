@@ -1,5 +1,6 @@
 package com.orte.config;
 
+import com.orte.security.CustomAuthenticationEntryPoint;
 import com.orte.security.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint
     ) throws Exception {
 
         http
@@ -38,6 +40,10 @@ public class SecurityConfig {
                                 "/h2-console/**"
                         ).permitAll()
                         .anyRequest().authenticated()
+                )
+
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
                 )
 
                 .headers(headers ->

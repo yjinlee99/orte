@@ -258,4 +258,30 @@ class BoardApplicationControllerTest {
         assertThat(boardApplicationRepository.count())
                 .isEqualTo(beforeCount);
     }
+
+    @Test
+    @DisplayName("게시판 제목이 100자를 초과하면 개설 신청에 실패한다")
+    void createBoardApplicationWithTooLongTitle() throws Exception {
+
+        String title = "가".repeat(101);
+
+        String request = """
+            {
+              "title": "%s",
+              "description": "게시판 설명"
+            }
+            """.formatted(title);
+
+        mockMvc.perform(post("/api/board-applications")
+                        .with(user(userDetails))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code")
+                        .value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors.title")
+                        .value("게시판 제목은 255자 이하로 입력해 주세요."));
+
+        assertThat(boardApplicationRepository.count()).isZero();
+    }
 }
