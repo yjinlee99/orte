@@ -19,7 +19,7 @@ public class BoardApplication {
     @Column(nullable = false)
     private Long applicantId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String title;
 
     @Column(nullable = false, length = 1000)
