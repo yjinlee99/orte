@@ -2,25 +2,24 @@
 
 애니메이션 작품별 게시판을 중심으로 이용자들이 이야기를 나눌 수 있는 커뮤니티 서비스입니다.
 
-이용자가 원하는 작품의 게시판 개설을 신청하고, 운영자가 승인하면 실제 게시판이 생성되는 흐름을 목표로 개발하고 있습니다.
+이용자가 원하는 작품의 게시판 개설을 신청하고, 운영자가 승인하면 실제 게시판이 생성되는 흐름을 구현하고 있습니다.
 
-현재는 **회원 인증과 게시판 개설 신청 흐름**을 구현했습니다.
+현재는 **회원 인증 → 게시판 개설 신청 → 운영자 승인** 흐름까지 구현했습니다.
 
 ---
 
 ## 주요 구현
 
 - Spring Security + JWT 기반 인증
-- Access Token / Refresh Token 발급 및 재발급
-- JWT `subject`에 `memberId`를 사용해 회원 식별
-- Refresh Token Rotation
-- 사용된 Refresh Token 재사용 차단
-- Refresh Token SHA-256 해시 저장
-- `jti`를 이용한 Refresh Token 발급값 고유성 보장
-- 인증된 회원의 게시판 개설 신청
-- 본인의 게시판 신청 목록 조회
+- Access Token / Refresh Token 발급 및 Rotation
+- Refresh Token SHA-256 해시 저장 및 재사용 차단
+- 인증된 회원의 게시판 개설 신청 / 본인 신청 조회
+- 운영자 권한을 이용한 게시판 개설 승인
+- 승인 시 `Board` 생성 및 신청자를 게시판 방장으로 연결
+- 중복 승인 방지 및 승인 실패 시 트랜잭션 롤백
 - 공통 오류 응답 및 Bean Validation
-- 실제 JWT 인증을 이용한 회원별 데이터 분리 테스트
+- 인증 실패 `401` / 권한 부족 `403` 응답 분리
+- MockMvc 기반 실제 JWT 인증 흐름 통합 테스트
 
 ---
 
@@ -31,86 +30,52 @@
 
 ---
 
-## 핵심 설계
-
-### 1. JWT 회원 식별
-
-로그인 시에는 이메일과 비밀번호를 사용하지만,  
-로그인 이후 JWT 인증에서는 변경 가능한 이메일 대신 **회원의 `memberId`를 식별값으로 사용**합니다.
+## 핵심 흐름
 
 ```text
-email + password
-        ↓
-로그인 성공
-        ↓
-JWT sub = memberId
-        ↓
-JwtAuthenticationFilter
-        ↓
-memberId로 Member 조회
-        ↓
-SecurityContext
+회원 로그인
+   ↓
+JWT 발급
+   ↓
+게시판 개설 신청
+   ↓
+PENDING
+   ↓
+운영자 승인
+   ↓
+Board 생성
+   ↓
+신청자를 Board owner로 연결
+   ↓
+APPROVED
 ```
-
-게시판 신청 시 신청자 ID를 요청 본문에서 전달받지 않고,  
-인증된 사용자 정보에서 `memberId`를 가져와 사용합니다.
-
----
-
-### 2. Refresh Token Rotation
-
-Refresh Token을 재발급에 사용하면 기존 토큰을 폐기하고 새로운 Refresh Token을 발급합니다.
-
-```text
-로그인
-  ↓
-R0 발급
-  ↓
-R0으로 재발급 요청
-  ↓
-R0 폐기 + R1 발급
-  ↓
-R0 재사용 거절
-  ↓
-R1은 정상 사용 가능
-```
-
-같은 회원이 짧은 시간 안에 토큰을 연속 발급받더라도 서로 다른 값이 생성되도록  
-Refresh Token에 `jti`를 추가했습니다.
 
 ---
 
 <details>
-<summary><strong>🔐 인증 / JWT 자세히 보기</strong></summary>
+<summary><strong>🔐 인증 / JWT</strong></summary>
 
-### 로그인
+### JWT 회원 식별
 
-```http
-POST /api/auth/login
-Content-Type: application/json
-```
-
-```json
-{
-  "email": "test@example.com",
-  "password": "password123"
-}
-```
-
-로그인에 성공하면 Access Token과 Refresh Token을 반환합니다.
+로그인 이후에는 변경 가능한 이메일 대신 JWT `subject`에 저장된  
+**`memberId`를 회원 식별값으로 사용**합니다.
 
 ```text
-Access Token  : 30분
-Refresh Token : 7일
+로그인
+ ↓
+JWT sub = memberId
+ ↓
+JwtAuthenticationFilter
+ ↓
+memberId로 Member 조회
+ ↓
+SecurityContext
 ```
 
-JWT Secret은 저장소에 직접 저장하지 않고 환경 변수로 주입합니다.
-
----
+게시판 신청 시에도 신청자 ID를 클라이언트에서 전달받지 않고  
+인증된 사용자의 `memberId`를 사용합니다.
 
 ### Access Token
-
-Access Token에는 현재 다음 정보를 포함합니다.
 
 ```text
 sub       = memberId
@@ -120,102 +85,59 @@ iat       = 발급 시간
 exp       = 만료 시간
 ```
 
-API 요청 시 다음 형식으로 전달합니다.
-
 ```http
 Authorization: Bearer <Access Token>
 ```
 
-`JwtAuthenticationFilter`에서 토큰의 서명·만료와 `tokenType`을 확인하고,  
-`sub`에서 `memberId`를 꺼내 회원을 조회한 뒤 `SecurityContext`에 인증 정보를 저장합니다.
+### Refresh Token Rotation
 
----
-
-### Refresh Token 저장
-
-Refresh Token 원문은 DB에 저장하지 않고 **SHA-256 해시값**을 저장합니다.
+Refresh Token을 사용하면 기존 토큰을 폐기하고 새로운 토큰을 발급합니다.
 
 ```text
-Refresh Token 원문
-        ↓
-     SHA-256
-        ↓
-   token_hash 저장
+R0 발급
+ ↓
+R0으로 재발급
+ ↓
+R0 폐기 + R1 발급
+ ↓
+R0 재사용 거절
+ ↓
+R1 정상 사용
 ```
 
-재발급 요청이 들어오면 전달된 토큰을 동일하게 해시하여 저장된 토큰을 찾습니다.
+Refresh Token에는 `jti`를 포함해 연속 발급 시에도 서로 다른 값이 생성되도록 했습니다.
 
----
-
-### Refresh Token 재발급
-
-```http
-POST /api/auth/refresh
-Content-Type: application/json
-```
-
-```json
-{
-  "refreshToken": "<Refresh Token>"
-}
-```
-
-재발급 과정은 다음과 같습니다.
+Refresh Token 원문은 DB에 저장하지 않고 **SHA-256 해시값만 저장**합니다.
 
 ```text
-Refresh Token 검증
-        ↓
-DB에 저장된 토큰 확인
-        ↓
-기존 Refresh Token 삭제
-        ↓
-새 Access Token 발급
-        ↓
-새 Refresh Token 발급
-        ↓
-새 Refresh Token 저장
+Refresh Token
+      ↓
+   SHA-256
+      ↓
+token_hash 저장
 ```
-
-기존 토큰 삭제와 새 토큰 저장은 하나의 트랜잭션 안에서 처리합니다.
-
----
 
 ### 로그아웃
 
-```http
-POST /api/auth/logout
-Content-Type: application/json
-```
+로그아웃 시 Refresh Token 저장 기록을 삭제합니다.
 
-```json
-{
-  "refreshToken": "<Refresh Token>"
-}
-```
+삭제된 Refresh Token은 다시 사용할 수 없습니다.
 
-로그아웃 시 전달받은 Refresh Token의 저장 기록을 삭제합니다.
-
-따라서 해당 Refresh Token을 이용한 추가 재발급은 불가능합니다.
-
-현재는 이미 발급된 Access Token을 즉시 폐기하지 않으며,  
-Access Token은 남은 유효기간 동안 사용할 수 있습니다.
+현재 Access Token은 즉시 폐기하지 않으며, 남은 유효기간 동안 사용할 수 있습니다.
 
 </details>
 
 ---
 
 <details>
-<summary><strong>📝 게시판 개설 신청 자세히 보기</strong></summary>
+<summary><strong>📝 게시판 개설 신청</strong></summary>
 
-### 게시판 개설 신청
+### 신청
 
 ```http
 POST /api/board-applications
 Authorization: Bearer <Access Token>
-Content-Type: application/json
 ```
-
-요청 예시
 
 ```json
 {
@@ -224,33 +146,29 @@ Content-Type: application/json
 }
 ```
 
-성공 시
+성공 시:
 
 ```text
 201 Created
 ```
 
-신청 데이터에는 현재 다음 정보를 저장합니다.
-
-```text
-id
-applicantId
-title
-description
-status
-createdAt
-```
-
-신청자 ID와 신청 상태는 클라이언트가 직접 전달하지 않습니다.
+신청 시 서버에서 자동으로 설정합니다.
 
 ```text
 applicantId → 인증된 회원의 memberId
 status      → PENDING
 ```
 
----
+입력 길이는 애플리케이션 검증 기준과 DB 컬럼 기준을 동일하게 맞췄습니다.
 
-### 내 게시판 신청 조회
+```text
+title       → 최대 100자
+description → 최대 1000자
+```
+
+허용 길이를 초과한 경우 `400 VALIDATION_FAILED`를 반환하며 DB에는 저장하지 않습니다.
+
+### 내 신청 조회
 
 ```http
 GET /api/me/board-applications
@@ -259,7 +177,7 @@ Authorization: Bearer <Access Token>
 
 인증된 회원의 `memberId`를 기준으로 자신의 신청만 조회합니다.
 
-신청 내역이 없는 경우 오류가 아닌 빈 배열을 반환합니다.
+신청이 없는 경우 빈 배열을 반환합니다.
 
 ```json
 []
@@ -270,11 +188,82 @@ Authorization: Bearer <Access Token>
 ---
 
 <details>
-<summary><strong>⚠️ 공통 오류 응답 자세히 보기</strong></summary>
+<summary><strong>✅ 게시판 승인</strong></summary>
 
-API마다 오류 형식이 달라지지 않도록 `GlobalExceptionHandler`를 통해 공통 응답 형식으로 처리합니다.
+운영자 권한을 가진 회원만 게시판 개설 신청을 승인할 수 있습니다.
 
-일반 오류 응답
+```http
+POST /api/board-applications/{id}/approve
+Authorization: Bearer <Admin Access Token>
+```
+
+성공 시:
+
+```text
+204 No Content
+```
+
+승인은 하나의 트랜잭션 안에서 처리합니다.
+
+```text
+PENDING 신청 조회
+      ↓
+Board 생성
+      ↓
+신청자를 Board owner로 연결
+      ↓
+PENDING → APPROVED
+```
+
+### 권한
+
+```text
+인증되지 않은 요청
+→ 401 Unauthorized
+
+인증됐지만 권한이 없는 USER
+→ 403 Forbidden
+```
+
+`401` 응답에는 다음 헤더를 포함합니다.
+
+```http
+WWW-Authenticate: Bearer
+```
+
+### 중복 승인
+
+이미 처리된 신청을 다시 승인하면:
+
+```text
+409 Conflict
+```
+
+를 반환하며 Board는 추가 생성되지 않습니다.
+
+### 트랜잭션 롤백
+
+승인 과정 중 예외가 발생하면 일부 변경만 남지 않도록 전체 작업을 롤백합니다.
+
+```text
+Board INSERT
+ ↓
+강제 예외
+ ↓
+ROLLBACK
+ ↓
+Board 없음
+BoardApplication = PENDING
+```
+
+</details>
+
+---
+
+<details>
+<summary><strong>⚠️ 공통 오류 응답</strong></summary>
+
+일반적인 비즈니스 예외는 `GlobalExceptionHandler`를 통해 공통 형식으로 처리합니다.
 
 ```json
 {
@@ -286,7 +275,7 @@ API마다 오류 형식이 달라지지 않도록 `GlobalExceptionHandler`를 �
 }
 ```
 
-입력값 검증 실패 시 필드별 오류를 함께 반환합니다.
+입력값 검증 실패 시 필드별 오류를 포함합니다.
 
 ```json
 {
@@ -301,7 +290,16 @@ API마다 오류 형식이 달라지지 않도록 `GlobalExceptionHandler`를 �
 }
 ```
 
-주요 오류 코드
+Security Filter 단계에서 발생하는 인증·인가 실패는 각각
+
+```text
+AuthenticationEntryPoint → 401
+AccessDeniedHandler      → 403
+```
+
+에서 동일한 오류 형식으로 처리합니다.
+
+주요 오류 코드:
 
 ```text
 VALIDATION_FAILED
@@ -313,58 +311,25 @@ EMAIL_ALREADY_EXISTS
 NICKNAME_ALREADY_EXISTS
 INVALID_CREDENTIALS
 INVALID_REFRESH_TOKEN
-```
 
-예상 가능한 비즈니스 오류는 `BusinessException`을 기반으로 처리하고,  
-예상하지 못한 예외의 상세 내용은 클라이언트에 노출하지 않고 서버 로그에 기록합니다.
+AUTHENTICATION_REQUIRED
+ACCESS_DENIED
+
+BOARD_APPLICATION_NOT_FOUND
+BOARD_APPLICATION_ALREADY_PROCESSED
+```
 
 </details>
 
 ---
 
 <details>
-<summary><strong>🧪 테스트 자세히 보기</strong></summary>
+<summary><strong>🧪 테스트</strong></summary>
 
-`SpringBootTest`와 `MockMvc`를 이용한 통합 테스트를 작성하고 있습니다.
+`SpringBootTest` 기반 통합 테스트를 작성하고 있으며,  
+API 전체 흐름은 `MockMvc`를 사용해 검증합니다.
 
-### 인증
-
-- 정상 회원가입
-- 이메일 중복 가입 거절
-- 닉네임 중복 가입 거절
-- 비밀번호 BCrypt 암호화 확인
-- 로그인 후 JWT 발급
-- 짧은 시간 안에 발급된 Refresh Token이 서로 다른 값인지 확인
-- Refresh Token 재발급 성공
-- 사용된 Refresh Token 재사용 거절
-- 새로 발급된 Refresh Token 정상 사용
-
-### 게시판 신청
-
-- 정상 개설 신청
-- 신규 신청 상태가 `PENDING`인지 확인
-- 신청 데이터 DB 저장 확인
-- 본인의 신청만 조회
-- 필수 입력값 검증
-- 잘못된 JSON 요청 거절
-- 지원하지 않는 Content-Type 요청 거절
-
-### 실제 JWT 인증 흐름
-
-테스트 사용자 A와 B를 각각 로그인시켜 실제 Access Token을 발급받은 뒤 검증합니다.
-
-```text
-회원 A 로그인 → Access Token A
-회원 B 로그인 → Access Token B
-
-A 토큰 → A의 게시판 신청 생성
-B 토큰 → B의 게시판 신청 생성
-
-A 토큰으로 조회 → A 신청만 반환
-B 토큰으로 조회 → B 신청만 반환
-```
-
-이를 통해 테스트용 인증 객체를 직접 주입하는 방식뿐 아니라,
+### JWT 인증
 
 ```text
 로그인
@@ -373,9 +338,71 @@ B 토큰으로 조회 → B 신청만 반환
 → SecurityContext
 → Controller
 → Service
+→ Repository
+→ DB
 ```
 
-까지 실제 인증 흐름이 연결되는지 확인합니다.
+실제 사용자 A/B를 로그인시킨 뒤 각자의 토큰으로 자신의 데이터만 조회되는지 확인합니다.
+
+### Refresh Token Rotation
+
+```text
+로그인
+ ↓
+R0 발급
+ ↓
+R0 refresh
+ ↓
+R1 발급
+ ↓
+R0 재사용 → 401
+ ↓
+R1 refresh
+ ↓
+R2 발급
+ ↓
+R2 logout
+ ↓
+R2 재사용 → 401
+```
+
+### 게시판 신청
+
+```text
+정상 신청
+최대 길이 정상 저장
+길이 초과 → 400
+검증 실패 시 DB 변경 없음
+본인 신청만 조회
+```
+
+### 게시판 승인
+
+```text
+USER 승인 요청 → 403
+ADMIN 승인 요청 → 성공
+Board 생성
+신청자 → Board owner
+PENDING → APPROVED
+재승인 → 409
+추가 Board 생성 없음
+```
+
+### 승인 롤백
+
+테스트 클래스 자체에는 `@Transactional`을 사용하지 않고  
+서비스 트랜잭션이 종료된 이후 DB 상태를 다시 조회합니다.
+
+```text
+Board 저장
+ ↓
+강제 예외
+ ↓
+ROLLBACK
+ ↓
+Board 없음
+Application = PENDING
+```
 
 </details>
 
@@ -383,26 +410,9 @@ B 토큰으로 조회 → B 신청만 반환
 
 ## 다음 구현
 
-게시판 개설 신청 이후의 **승인 흐름**을 구현할 예정입니다.
-
-```text
-운영자 승인
-    ↓
-Board 생성
-    ↓
-신청자를 게시판 방장으로 연결
-    ↓
-BoardApplication
-PENDING → APPROVED
-```
-
-다음 단계에서는 아래 항목을 구현합니다.
-
-- 운영자 권한을 이용한 게시판 개설 승인
-- 실제 `Board` 생성
-- 신청자와 게시판 방장 연결
-- 승인 과정의 트랜잭션 처리
-- 이미 처리된 신청의 중복 승인 방지
-- 승인 실패 시 전체 롤백 검증
-
-동시 승인 처리와 게시판 개설 거절 기능은 이후 단계에서 다룰 예정입니다.
+- 게시판 개설 신청 거절
+- 게시판 목록 / 상세 조회
+- 게시글 / 댓글
+- 게시판별 관리자 기능
+- 서비스 운영자 권한 관리
+- 동시 승인 처리
