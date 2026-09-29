@@ -17,8 +17,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -47,7 +46,12 @@ class JwtAuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
                 .andExpect(jsonPath("$.message").value("인증이 필요합니다."))
                 .andExpect(jsonPath("$.path").value("/api/me/board-applications"))
-                .andExpect(jsonPath("$.timestamp").exists());
+
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(header().string(
+                        HttpHeaders.WWW_AUTHENTICATE,
+                        "Bearer"
+                ));
     }
 
     @Test
@@ -109,7 +113,11 @@ class JwtAuthenticationIntegrationTest {
                         .value("인증이 필요합니다."))
                 .andExpect(jsonPath("$.path")
                         .value("/api/me/board-applications"))
-                .andExpect(jsonPath("$.timestamp").exists());
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(header().string(
+                        HttpHeaders.WWW_AUTHENTICATE,
+                        "Bearer"
+                ));
     }
 
     @Test
@@ -151,7 +159,11 @@ class JwtAuthenticationIntegrationTest {
                 .andExpect(jsonPath("$.code")
                         .value("AUTHENTICATION_REQUIRED"))
                 .andExpect(jsonPath("$.message")
-                        .value("인증이 필요합니다."));
+                        .value("인증이 필요합니다."))
+                .andExpect(header().string(
+                        HttpHeaders.WWW_AUTHENTICATE,
+                        "Bearer"
+                ));
     }
 
 

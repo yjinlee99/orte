@@ -45,4 +45,8 @@ public class Member {
         this.role = MemberRole.USER;
         this.createdAt = LocalDateTime.now();
     }
+
+    public void promoteToAdmin() {
+        this.role = MemberRole.ADMIN;
+    }
 }
