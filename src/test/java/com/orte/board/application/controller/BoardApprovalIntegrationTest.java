@@ -234,4 +234,86 @@ class BoardApprovalIntegrationTest {
                 .get("accessToken")
                 .asText();
     }
+
+    @Test
+    @DisplayName("이미 승인된 신청을 다시 승인하면 409를 반환하고 게시판은 추가 생성되지 않는다")
+    void alreadyApprovedApplicationCannotBeApprovedAgain() throws Exception {
+
+        // given - 신청자
+        Member applicant = memberRepository.save(
+                new Member(
+                        "applicant2@example.com",
+                        passwordEncoder.encode("password123"),
+                        "신청자2"
+                )
+        );
+
+        BoardApplication application =
+                boardApplicationRepository.save(
+                        new BoardApplication(
+                                applicant.getId(),
+                                "원피스",
+                                "원피스 게시판"
+                        )
+                );
+
+        // given - 운영자
+        Member admin = new Member(
+                "admin2@example.com",
+                passwordEncoder.encode("password123"),
+                "관리자2"
+        );
+
+        admin.promoteToAdmin();
+        memberRepository.save(admin);
+
+        String adminAccessToken =
+                loginAndGetAccessToken(
+                        "admin2@example.com",
+                        "password123"
+                );
+
+        // 첫 번째 승인
+        mockMvc.perform(
+                        post(
+                                "/api/board-applications/{id}/approve",
+                                application.getId()
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + adminAccessToken
+                                )
+                )
+                .andExpect(status().isNoContent());
+
+        assertThat(boardRepository.count())
+                .isEqualTo(1);
+
+        // when - 같은 신청을 다시 승인
+        mockMvc.perform(
+                        post(
+                                "/api/board-applications/{id}/approve",
+                                application.getId()
+                        )
+                                .header(
+                                        HttpHeaders.AUTHORIZATION,
+                                        "Bearer " + adminAccessToken
+                                )
+                )
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code")
+                        .value("BOARD_APPLICATION_ALREADY_PROCESSED"));
+
+        // then - 게시판이 추가 생성되지 않음
+        assertThat(boardRepository.count())
+                .isEqualTo(1);
+
+        BoardApplication approvedApplication =
+                boardApplicationRepository
+                        .findById(application.getId())
+                        .orElseThrow();
+
+        assertThat(approvedApplication.getStatus())
+                .isEqualTo(BoardApplicationStatus.APPROVED);
+    }
 }
