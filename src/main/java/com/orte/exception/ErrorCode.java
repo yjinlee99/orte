@@ -48,6 +48,22 @@ public enum ErrorCode {
             "인증이 필요합니다."
     ),
 
+    ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "접근 권한이 없습니다."
+    ),
+
+    // Board Application
+    BOARD_APPLICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "게시판 개설 신청을 찾을 수 없습니다."
+    ),
+
+    BOARD_APPLICATION_ALREADY_PROCESSED(
+            HttpStatus.CONFLICT,
+            "이미 처리된 게시판 개설 신청입니다."
+    ),
+
     // Refresh Token
     INVALID_REFRESH_TOKEN(
             HttpStatus.UNAUTHORIZED,

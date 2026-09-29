@@ -46,4 +46,13 @@ public class BoardApplicationController {
 
         return ResponseEntity.ok(responses);
     }
+
+    @PostMapping("/api/board-applications/{id}/approve")
+    public ResponseEntity<Void> approve(
+            @PathVariable Long id
+    ) {
+        boardApplicationService.approve(id);
+
+        return ResponseEntity.noContent().build();
+    }
 }

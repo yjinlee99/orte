@@ -1,5 +1,6 @@
-package com.orte.board.application.entity;
+package com.orte.board.entity;
 
+import com.orte.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -8,16 +9,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "boards")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class BoardApplication {
+public class Board {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
-    private Long applicantId;
 
     @Column(nullable = false, length = 100)
     private String title;
@@ -25,27 +24,21 @@ public class BoardApplication {
     @Column(nullable = false, length = 1000)
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BoardApplicationStatus status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
+    private Member owner;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public BoardApplication(
-            Long applicantId,
+    public Board(
             String title,
-            String description
+            String description,
+            Member owner
     ) {
-        this.applicantId = applicantId;
         this.title = title;
         this.description = description;
-        this.status = BoardApplicationStatus.PENDING;
+        this.owner = owner;
         this.createdAt = LocalDateTime.now();
     }
-
-    public void approve() {
-        this.status = BoardApplicationStatus.APPROVED;
-    }
-
 }

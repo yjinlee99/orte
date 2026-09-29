@@ -185,4 +185,121 @@ class AuthRefreshIntegrationTest {
         assertThat(savedRefreshToken.getTokenHash())
                 .isEqualTo(tokenHash);
     }
+
+    @Test
+    @DisplayName("Refresh Token은 갱신 시 회전되고 이전 토큰은 재사용할 수 없다")
+    void refreshTokenRotationFlow() throws Exception {
+
+        // given - 회원 생성
+        Member member = memberRepository.save(
+                new Member(
+                        "rotation@example.com",
+                        passwordEncoder.encode("password123"),
+                        "회전테스트"
+                )
+        );
+
+        // 1. 로그인 → R0 발급
+        String loginResponse = mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "email": "rotation@example.com",
+                                      "password": "password123"
+                                    }
+                                    """)
+                )
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String r0 = objectMapper.readTree(loginResponse)
+                .get("refreshToken")
+                .asText();
+
+        // 2. R0로 갱신 → R1 발급
+        String firstRefreshResponse = mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "refreshToken": "%s"
+                                    }
+                                    """.formatted(r0))
+                )
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String r1 = objectMapper.readTree(firstRefreshResponse)
+                .get("refreshToken")
+                .asText();
+
+        // R0와 R1은 달라야 함
+        assertThat(r1).isNotEqualTo(r0);
+
+        // 3. 이미 사용한 R0 재사용 → 401
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "refreshToken": "%s"
+                                    }
+                                    """.formatted(r0))
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code")
+                        .value("INVALID_REFRESH_TOKEN"));
+
+        // 4. R1은 정상 사용 가능 → R2 발급
+        String secondRefreshResponse = mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "refreshToken": "%s"
+                                    }
+                                    """.formatted(r1))
+                )
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String r2 = objectMapper.readTree(secondRefreshResponse)
+                .get("refreshToken")
+                .asText();
+
+        assertThat(r2).isNotEqualTo(r1);
+
+        // 5. 최신 Refresh Token R2로 로그아웃
+        mockMvc.perform(
+                        post("/api/auth/logout")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "refreshToken": "%s"
+                                    }
+                                    """.formatted(r2))
+                )
+                .andExpect(status().isNoContent());
+
+        // 6. 로그아웃한 R2 재사용 → 401
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "refreshToken": "%s"
+                                    }
+                                    """.formatted(r2))
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code")
+                        .value("INVALID_REFRESH_TOKEN"));
+    }
 }
