@@ -1,9 +1,8 @@
-package com.orte.board.application.controller;
+package com.orte.board.application.service;
 
 import com.orte.board.application.entity.BoardApplication;
 import com.orte.board.application.entity.BoardApplicationStatus;
 import com.orte.board.application.repository.BoardApplicationRepository;
-import com.orte.board.application.service.BoardApplicationService;
 import com.orte.board.entity.Board;
 import com.orte.board.repository.BoardRepository;
 import com.orte.member.entity.Member;
