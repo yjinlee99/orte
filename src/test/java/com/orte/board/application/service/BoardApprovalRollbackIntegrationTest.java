@@ -15,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -69,14 +71,33 @@ public class BoardApprovalRollbackIntegrationTest {
                 );
 
         doAnswer(invocation -> {
-
             Board board = invocation.getArgument(0);
-
             entityManager.persist(board);
-            entityManager.flush();
 
-            throw new IllegalStateException("승인 중 강제 실패");
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void beforeCommit(boolean readOnly) {
+                            BoardApplication changedApplication =
+                                    entityManager.find(
+                                            BoardApplication.class,
+                                            application.getId()
+                                    );
 
+                            // 서비스의 application.approve()가 실행됐는지 확인
+                            assertThat(changedApplication.getStatus())
+                                    .isEqualTo(BoardApplicationStatus.APPROVED);
+
+                            // 게시판 생성과 신청 상태 변경을 DB에 반영한다.
+                            // flush는 commit이 아니므로 여전히 롤백 가능하다.
+                            entityManager.flush();
+
+                            throw new IllegalStateException("커밋 직전 강제 실패");
+                        }
+                    }
+            );
+
+            return board;
         }).when(boardRepository).save(any(Board.class));
 
         // when
