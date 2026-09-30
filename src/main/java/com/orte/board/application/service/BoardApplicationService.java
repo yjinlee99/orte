@@ -70,7 +70,7 @@ public class BoardApplicationService {
     public void approve(Long applicationId) {
 
         BoardApplication application =
-                boardApplicationRepository.findById(applicationId)
+                boardApplicationRepository.findByIdForUpdate(applicationId)
                         .orElseThrow(() ->
                                 new BusinessException(
                                         ErrorCode.BOARD_APPLICATION_NOT_FOUND
