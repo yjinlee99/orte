@@ -2,14 +2,14 @@ spring:
   application:
     name: orte
 
-    datasource:
-      url: ${DB_URL:jdbc:h2:mem:orte}
-      username: ${DB_USERNAME:sa}
-      password: ${DB_PASSWORD:}
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:orte}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
 
-    jpa:
-      hibernate:
-        ddl-auto: ${DDL_AUTO:create-drop}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:create-drop}
 
 server:
   port: ${PORT:8080}
