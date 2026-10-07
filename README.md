@@ -68,8 +68,8 @@ cd orte
 | 환경변수 | 설명 | 필수 여부 |
 | --- | --- | --- |
 | `JWT_SECRET` | JWT 서명에 사용하는 Base64 Secret Key | 필수 |
-| `SUPER_ADMIN_EMAIL` | 초기 SUPER_ADMIN 이메일 | 선택 |
-| `SUPER_ADMIN_PASSWORD` | 초기 SUPER_ADMIN 비밀번호 | 선택 |
+| `SUPER_ADMIN_EMAIL` | 초기 SUPER_ADMIN 이메일 | 관리자 기능 확인 시 필요 |
+| `SUPER_ADMIN_PASSWORD` | 초기 SUPER_ADMIN 비밀번호 | 관리자 기능 확인 시 필요 |
 | `SUPER_ADMIN_NICKNAME` | 초기 SUPER_ADMIN 닉네임 | 선택 |
 
 `SUPER_ADMIN_EMAIL`과 `SUPER_ADMIN_PASSWORD`를 설정하면 애플리케이션 시작 시 `SUPER_ADMIN`이 존재하지 않는 경우 초기 계정을 자동 생성합니다.
@@ -77,6 +77,14 @@ cd orte
 `SUPER_ADMIN_NICKNAME`을 설정하지 않으면 `super-admin`을 사용합니다.
 
 실제 Secret과 비밀번호는 저장소에 포함하지 않습니다.
+
+`JWT_SECRET`은 Base64로 인코딩된 충분한 길이의 값을 사용합니다.
+
+예시:
+
+```bash
+openssl rand -base64 32
+```
 
 ### 3. 로컬 실행
 
@@ -267,7 +275,7 @@ Content-Type: application/json
 
 응답으로 받은 Access Token을 관리자 API 호출에 사용합니다.
 
-> 실제 SUPER_ADMIN 로그인 정보는 저장소에 공개하지 않습니다.
+> 배포 환경의 검증용 SUPER_ADMIN 로그인 정보는 저장소에 공개하지 않고 별도로 전달합니다.
 
 ---
 
