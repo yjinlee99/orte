@@ -1,113 +1,389 @@
+
 # ORTE
 
 애니메이션 작품별 게시판을 중심으로 이용자들이 이야기를 나눌 수 있는 커뮤니티 서비스입니다.
 
-이용자가 원하는 작품의 게시판 개설을 신청하고, 운영자가 승인하면 실제 게시판이 생성되는 흐름을 구현하고 있습니다.
+사용자가 원하는 작품의 게시판 개설을 신청하고, 운영자가 승인하면 실제 게시판이 생성되는 흐름을 구현했습니다.
 
-현재는 **회원 인증 → 게시판 개설 신청 → 운영자 승인** 흐름까지 구현했습니다.
+현재 **회원 인증 → 게시판 개설 신청 → 운영자 승인 → 게시판 생성** 흐름까지 구현되어 있습니다.
 
 ---
 
-## 주요 구현
+## 배포
 
+- Railway에서 `Dockerfile` 기반으로 애플리케이션을 배포했습니다.
+- 운영 데이터베이스는 PostgreSQL을 사용합니다.
+- DB 접속 정보, JWT Secret, SUPER_ADMIN 계정 정보는 환경변수로 관리합니다.
+
+<details>
+<summary><strong>배포 주소</strong></summary>
+
+<br>
+
+https://orte-production.up.railway.app/
+
+> 실제 SUPER_ADMIN 로그인 정보와 Secret 값은 저장소에 공개하지 않습니다.
+
+</details>
+
+---
+
+## 주요 기능
+
+- 회원가입 / 로그인
 - Spring Security + JWT 기반 인증
-- Access Token / Refresh Token 발급 및 Rotation
-- Refresh Token SHA-256 해시 저장 및 재사용 차단
-- 인증된 회원의 게시판 개설 신청 / 본인 신청 조회
-- 운영자 권한을 이용한 게시판 개설 승인
-- 승인 시 `Board` 생성 및 신청자를 게시판 방장으로 연결
-- 중복 승인 방지 및 승인 실패 시 트랜잭션 롤백
-- 공통 오류 응답 및 Bean Validation
-- 인증 실패 `401` / 권한 부족 `403` 응답 분리
-- MockMvc 기반 실제 JWT 인증 흐름 통합 테스트
+- Access Token / Refresh Token 발급
+- Refresh Token Rotation 및 재사용 차단
+- Refresh Token SHA-256 해시 저장
+- 로그아웃
+- 게시판 개설 신청
+- 본인 게시판 신청 내역 조회
+- `ADMIN`, `SUPER_ADMIN` 권한을 이용한 게시판 개설 승인
+- 환경변수 기반 초기 `SUPER_ADMIN` 계정 생성
+- 중복 승인 방지
+- 동시 승인 시 중복 게시판 생성 방지
+- 승인 실패 시 트랜잭션 롤백
+- 공통 오류 응답 및 입력값 검증
 
 ---
 
-## Tech Stack
+## 실행 방법
 
-`Java 17` `Spring Boot 4.1.1` `Spring Security` `Spring Data JPA`  
-`H2` `Gradle` `JUnit` `MockMvc`
+### 요구 환경
 
----
+- Java 17
+- Git
 
-## 핵심 흐름
+### 1. 프로젝트 다운로드
+
+```bash
+git clone https://github.com/yjinlee99/orte.git
+cd orte
+```
+
+### 2. 환경변수 설정
+
+로컬 실행 시 필수로 필요한 환경변수는 `JWT_SECRET`입니다.
+
+| 환경변수 | 설명 | 필수 여부 |
+| --- | --- | --- |
+| `JWT_SECRET` | JWT 서명에 사용하는 Base64 Secret Key | 필수 |
+| `SUPER_ADMIN_EMAIL` | 초기 SUPER_ADMIN 이메일 | 선택 |
+| `SUPER_ADMIN_PASSWORD` | 초기 SUPER_ADMIN 비밀번호 | 선택 |
+| `SUPER_ADMIN_NICKNAME` | 초기 SUPER_ADMIN 닉네임 | 선택 |
+
+`SUPER_ADMIN_EMAIL`과 `SUPER_ADMIN_PASSWORD`를 설정하면 애플리케이션 시작 시 `SUPER_ADMIN`이 존재하지 않는 경우 초기 계정을 자동 생성합니다.
+
+`SUPER_ADMIN_NICKNAME`을 설정하지 않으면 `super-admin`을 사용합니다.
+
+실제 Secret과 비밀번호는 저장소에 포함하지 않습니다.
+
+### 3. 로컬 실행
+
+별도의 DB 환경변수를 설정하지 않으면 H2 인메모리 DB를 사용합니다.
+
+Windows:
+
+```bash
+gradlew.bat bootRun
+```
+
+macOS / Linux:
+
+```bash
+./gradlew bootRun
+```
+
+기본 실행 주소:
 
 ```text
-회원 로그인
-   ↓
-JWT 발급
-   ↓
-게시판 개설 신청
-   ↓
-PENDING
-   ↓
-운영자 승인
-   ↓
-Board 생성
-   ↓
-신청자를 Board owner로 연결
-   ↓
-APPROVED
+http://localhost:8080
+```
+
+> H2 인메모리 DB를 사용하는 경우 애플리케이션을 종료하면 저장된 데이터가 초기화됩니다.
+
+### 4. 테스트 실행
+
+Windows:
+
+```bash
+gradlew.bat test
+```
+
+macOS / Linux:
+
+```bash
+./gradlew test
+```
+
+### PostgreSQL 사용
+
+PostgreSQL을 사용하는 경우 다음 환경변수를 추가로 설정합니다.
+
+| 환경변수 | 설명 |
+| --- | --- |
+| `DB_URL` | PostgreSQL JDBC URL |
+| `DB_USERNAME` | PostgreSQL 사용자명 |
+| `DB_PASSWORD` | PostgreSQL 비밀번호 |
+| `DDL_AUTO` | Hibernate DDL 설정 |
+
+배포 환경에서는 Railway PostgreSQL을 사용하고 있으며 `DDL_AUTO=update`로 설정합니다.
+
+### Docker 실행
+
+Docker를 사용하는 경우 다음과 같이 이미지를 빌드하고 실행할 수 있습니다.
+
+```bash
+docker build -t orte .
+```
+
+```bash
+docker run --env-file .env -p 8080:8080 orte
 ```
 
 ---
 
 <details>
-<summary><strong>🔐 인증 / JWT</strong></summary>
+<summary><strong>서비스 동작 확인 방법</strong></summary>
 
-### JWT 회원 식별
+<br>
 
-로그인 이후에는 변경 가능한 이메일 대신 JWT `subject`에 저장된  
-**`memberId`를 회원 식별값으로 사용**합니다.
+아래 순서로 회원가입부터 게시판 승인까지 전체 흐름을 확인할 수 있습니다.
 
-```text
-로그인
- ↓
-JWT sub = memberId
- ↓
-JwtAuthenticationFilter
- ↓
-memberId로 Member 조회
- ↓
-SecurityContext
+### 1. 일반 회원 가입
+
+```http
+POST /api/auth/signup
+Content-Type: application/json
 ```
 
-게시판 신청 시에도 신청자 ID를 클라이언트에서 전달받지 않고  
-인증된 사용자의 `memberId`를 사용합니다.
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "nickname": "사용자"
+}
+```
 
-### Access Token
+정상 응답:
 
 ```text
-sub       = memberId
-role      = ROLE_USER / ROLE_ADMIN
-tokenType = ACCESS
-iat       = 발급 시간
-exp       = 만료 시간
+201 Created
 ```
+
+```json
+{
+  "memberId": 1
+}
+```
+
+---
+
+### 2. 일반 회원 로그인
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+정상 응답:
+
+```text
+200 OK
+```
+
+```json
+{
+  "accessToken": "...",
+  "refreshToken": "..."
+}
+```
+
+이후 인증이 필요한 API에는 Access Token을 전달합니다.
 
 ```http
 Authorization: Bearer <Access Token>
 ```
 
-### Refresh Token Rotation
+---
 
-Refresh Token을 사용하면 기존 토큰을 폐기하고 새로운 토큰을 발급합니다.
+### 3. 게시판 개설 신청
 
-```text
-R0 발급
- ↓
-R0으로 재발급
- ↓
-R0 폐기 + R1 발급
- ↓
-R0 재사용 거절
- ↓
-R1 정상 사용
+```http
+POST /api/board-applications
+Authorization: Bearer <User Access Token>
+Content-Type: application/json
 ```
 
-Refresh Token에는 `jti`를 포함해 연속 발급 시에도 서로 다른 값이 생성되도록 했습니다.
+```json
+{
+  "title": "진격의 거인",
+  "description": "진격의 거인 이야기를 나누는 게시판"
+}
+```
 
-Refresh Token 원문은 DB에 저장하지 않고 **SHA-256 해시값만 저장**합니다.
+정상 응답:
+
+```text
+201 Created
+```
+
+신청 상태는 `PENDING`으로 생성됩니다.
+
+응답의 `id`는 이후 승인 요청에 사용합니다.
+
+---
+
+### 4. 운영자 로그인
+
+게시판 개설 승인은 `ADMIN` 또는 `SUPER_ADMIN` 권한을 가진 회원이 수행할 수 있습니다.
+
+현재 초기 운영 계정은 환경변수를 이용해 `SUPER_ADMIN`으로 생성하므로, 아래 확인 절차에서는 해당 계정을 사용합니다.
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "<SUPER_ADMIN_EMAIL>",
+  "password": "<SUPER_ADMIN_PASSWORD>"
+}
+```
+
+정상 응답:
+
+```text
+200 OK
+```
+
+응답으로 받은 Access Token을 관리자 API 호출에 사용합니다.
+
+> 실제 SUPER_ADMIN 로그인 정보는 저장소에 공개하지 않습니다.
+
+---
+
+### 5. 게시판 개설 승인
+
+`ADMIN` 또는 `SUPER_ADMIN`의 Access Token으로 게시판 개설 신청을 승인합니다.
+
+```http
+POST /api/board-applications/{applicationId}/approve
+Authorization: Bearer <Admin Access Token>
+```
+
+정상 응답:
+
+```text
+204 No Content
+```
+
+승인이 완료되면 다음 흐름으로 데이터가 변경됩니다.
+
+```text
+PENDING
+  ↓
+Board 생성
+  ↓
+신청자를 Board owner로 연결
+  ↓
+APPROVED
+```
+
+---
+
+### 권한 확인
+
+일반 `USER`의 Access Token으로 승인 API를 호출하면:
+
+```text
+403 Forbidden
+```
+
+인증 없이 보호된 API를 호출하면:
+
+```text
+401 Unauthorized
+```
+
+를 반환합니다.
+
+</details>
+
+---
+
+## 권한 구조
+
+| 권한 | 설명 |
+| --- | --- |
+| `USER` | 일반 서비스 이용자 |
+| `ADMIN` | 게시판 개설 신청 승인 등 운영 기능 수행 |
+| `SUPER_ADMIN` | `ADMIN`의 운영 기능을 모두 수행하며, 향후 관리자 권한 관리를 위한 최고 관리자 |
+
+일반 회원가입으로 생성되는 회원은 항상 `USER` 권한을 가집니다.
+
+애플리케이션 시작 시 `SUPER_ADMIN`이 존재하지 않고 관련 환경변수가 설정되어 있으면 초기 `SUPER_ADMIN` 계정을 자동 생성합니다.
+
+---
+
+## Tech Stack
+
+**Backend**
+
+`Java 17` `Spring Boot 4.1.1` `Spring Security` `Spring Data JPA` `JWT`
+
+**Database**
+
+`PostgreSQL` `H2`
+
+**Test**
+
+`JUnit` `MockMvc`
+
+**Infra**
+
+`Docker` `Railway`
+
+---
+
+<details>
+<summary><strong>주요 설계 및 문제 해결</strong></summary>
+
+<br>
+
+### JWT 기반 회원 식별
+
+로그인 이후에는 변경 가능한 이메일 대신 JWT의 `subject`에 저장된 `memberId`를 회원 식별값으로 사용합니다.
+
+```text
+로그인
+  ↓
+JWT sub = memberId
+  ↓
+JwtAuthenticationFilter
+  ↓
+memberId로 Member 조회
+  ↓
+SecurityContext 등록
+```
+
+게시판 신청 시에도 회원 ID를 요청으로 전달받지 않고 인증된 사용자의 `memberId`를 사용하도록 구성했습니다.
+
+---
+
+### Refresh Token Rotation
+
+Access Token만으로는 서버에서 로그아웃 상태를 관리하기 어려워 Refresh Token을 DB에서 관리합니다.
+
+Refresh Token 원문은 저장하지 않고 SHA-256 해시값을 저장합니다.
 
 ```text
 Refresh Token
@@ -117,93 +393,25 @@ Refresh Token
 token_hash 저장
 ```
 
-### 로그아웃
+Refresh Token을 사용해 토큰을 재발급하면 기존 토큰을 폐기하고 새로운 Refresh Token을 발급합니다.
 
-로그아웃 시 Refresh Token 저장 기록을 삭제합니다.
+```text
+R0 발급
+  ↓
+R0으로 재발급
+  ↓
+R0 폐기 + R1 발급
+  ↓
+R0 재사용 시 거절
+```
 
-삭제된 Refresh Token은 다시 사용할 수 없습니다.
-
-현재 Access Token은 즉시 폐기하지 않으며, 남은 유효기간 동안 사용할 수 있습니다.
-
-</details>
+로그아웃 시에도 저장된 Refresh Token을 삭제해 이후 재사용할 수 없도록 했습니다.
 
 ---
 
-<details>
-<summary><strong>📝 게시판 개설 신청</strong></summary>
+### 게시판 승인 트랜잭션
 
-### 신청
-
-```http
-POST /api/board-applications
-Authorization: Bearer <Access Token>
-```
-
-```json
-{
-  "title": "진격의 거인",
-  "description": "진격의 거인 이야기 게시판"
-}
-```
-
-성공 시:
-
-```text
-201 Created
-```
-
-신청 시 서버에서 자동으로 설정합니다.
-
-```text
-applicantId → 인증된 회원의 memberId
-status      → PENDING
-```
-
-입력 길이는 애플리케이션 검증 기준과 DB 컬럼 기준을 동일하게 맞췄습니다.
-
-```text
-title       → 최대 100자
-description → 최대 1000자
-```
-
-허용 길이를 초과한 경우 `400 VALIDATION_FAILED`를 반환하며 DB에는 저장하지 않습니다.
-
-### 내 신청 조회
-
-```http
-GET /api/me/board-applications
-Authorization: Bearer <Access Token>
-```
-
-인증된 회원의 `memberId`를 기준으로 자신의 신청만 조회합니다.
-
-신청이 없는 경우 빈 배열을 반환합니다.
-
-```json
-[]
-```
-
-</details>
-
----
-
-<details>
-<summary><strong>✅ 게시판 승인</strong></summary>
-
-운영자 권한을 가진 회원만 게시판 개설 신청을 승인할 수 있습니다.
-
-```http
-POST /api/board-applications/{id}/approve
-Authorization: Bearer <Admin Access Token>
-```
-
-성공 시:
-
-```text
-204 No Content
-```
-
-승인은 하나의 트랜잭션 안에서 처리합니다.
+게시판 개설 승인은 여러 데이터 변경이 함께 이루어집니다.
 
 ```text
 PENDING 신청 조회
@@ -212,207 +420,106 @@ Board 생성
       ↓
 신청자를 Board owner로 연결
       ↓
-PENDING → APPROVED
+신청 상태 APPROVED 변경
 ```
 
-### 권한
+이 과정을 하나의 트랜잭션으로 처리해 중간 단계에서 예외가 발생하면 일부 데이터만 변경되지 않도록 했습니다.
+
+통합 테스트에서는 승인 중 강제로 예외를 발생시킨 뒤 트랜잭션 종료 후 DB를 다시 조회하여 다음 상태를 확인했습니다.
 
 ```text
-인증되지 않은 요청
-→ 401 Unauthorized
-
-인증됐지만 권한이 없는 USER
-→ 403 Forbidden
-```
-
-`401` 응답에는 다음 헤더를 포함합니다.
-
-```http
-WWW-Authenticate: Bearer
-```
-
-### 중복 승인
-
-이미 처리된 신청을 다시 승인하면:
-
-```text
-409 Conflict
-```
-
-를 반환하며 Board는 추가 생성되지 않습니다.
-
-### 트랜잭션 롤백
-
-승인 과정 중 예외가 발생하면 일부 변경만 남지 않도록 전체 작업을 롤백합니다.
-
-```text
-Board INSERT
- ↓
-강제 예외
- ↓
-ROLLBACK
- ↓
 Board 없음
 BoardApplication = PENDING
 ```
 
-</details>
+---
+
+### 동시 승인 시 중복 게시판 생성 방지
+
+동일한 게시판 신청에 두 승인 요청이 동시에 들어오는 테스트를 작성한 결과, 두 요청이 모두 `PENDING` 상태를 읽으면서 Board가 두 개 생성될 수 있는 문제를 확인했습니다.
+
+승인 대상 `BoardApplication`을 조회할 때 비관적 쓰기 락을 적용하여 하나의 승인 처리가 끝날 때까지 다른 요청이 같은 신청을 동시에 처리하지 못하도록 변경했습니다.
+
+```text
+요청 A ── PENDING 조회 + LOCK ── 승인 ── COMMIT
+                         │
+요청 B ───────────────── 대기
+                         ↓
+                    변경된 상태 확인
+                         ↓
+                       409
+```
+
+이를 통해 하나의 신청에서 하나의 Board만 생성되도록 했습니다.
 
 ---
 
-<details>
-<summary><strong>⚠️ 공통 오류 응답</strong></summary>
+### 인증 실패와 권한 부족 분리
 
-일반적인 비즈니스 예외는 `GlobalExceptionHandler`를 통해 공통 형식으로 처리합니다.
-
-```json
-{
-  "status": 400,
-  "code": "INVALID_REQUEST",
-  "message": "요청 본문을 확인해 주세요.",
-  "path": "/api/board-applications",
-  "timestamp": "2026-09-23T00:00:00"
-}
-```
-
-입력값 검증 실패 시 필드별 오류를 포함합니다.
-
-```json
-{
-  "status": 400,
-  "code": "VALIDATION_FAILED",
-  "message": "입력값을 확인해 주세요.",
-  "path": "/api/board-applications",
-  "timestamp": "2026-09-23T00:00:00",
-  "errors": {
-    "title": "게시판 제목은 필수입니다."
-  }
-}
-```
-
-Security Filter 단계에서 발생하는 인증·인가 실패는 각각
+Spring Security Filter 단계에서 발생하는 인증·인가 오류도 애플리케이션의 공통 오류 응답 형식과 맞췄습니다.
 
 ```text
-AuthenticationEntryPoint → 401
-AccessDeniedHandler      → 403
+인증 정보 없음 / 유효하지 않음
+→ AuthenticationEntryPoint
+→ 401 Unauthorized
+
+인증은 됐지만 권한 부족
+→ AccessDeniedHandler
+→ 403 Forbidden
 ```
 
-에서 동일한 오류 형식으로 처리합니다.
+---
 
-주요 오류 코드:
+### 실행 환경과 설정 분리
+
+DB 접속 정보, JWT Secret, 초기 SUPER_ADMIN 계정 정보는 소스 코드에 하드코딩하지 않고 환경변수로 전달합니다.
 
 ```text
-VALIDATION_FAILED
-INVALID_REQUEST
-UNSUPPORTED_MEDIA_TYPE
-INTERNAL_SERVER_ERROR
+로컬
+→ H2 기본 설정
 
-EMAIL_ALREADY_EXISTS
-NICKNAME_ALREADY_EXISTS
-INVALID_CREDENTIALS
-INVALID_REFRESH_TOKEN
-
-AUTHENTICATION_REQUIRED
-ACCESS_DENIED
-
-BOARD_APPLICATION_NOT_FOUND
-BOARD_APPLICATION_ALREADY_PROCESSED
+배포
+→ Railway PostgreSQL
+→ 환경변수로 DB/JWT/SUPER_ADMIN 설정
 ```
+
+동일한 애플리케이션을 실행 환경에 따라 설정값만 변경해 사용할 수 있도록 구성했습니다.
 
 </details>
 
 ---
 
 <details>
-<summary><strong>🧪 테스트</strong></summary>
+<summary><strong>테스트</strong></summary>
 
-`SpringBootTest` 기반 통합 테스트를 작성하고 있으며,  
-API 전체 흐름은 `MockMvc`를 사용해 검증합니다.
+<br>
 
-### JWT 인증
+`SpringBootTest`와 `MockMvc`를 이용해 실제 요청 흐름을 기준으로 통합 테스트를 작성했습니다.
 
-```text
-로그인
-→ JWT 발급
-→ JwtAuthenticationFilter
-→ SecurityContext
-→ Controller
-→ Service
-→ Repository
-→ DB
-```
+주요 검증 항목:
 
-실제 사용자 A/B를 로그인시킨 뒤 각자의 토큰으로 자신의 데이터만 조회되는지 확인합니다.
-
-### Refresh Token Rotation
-
-```text
-로그인
- ↓
-R0 발급
- ↓
-R0 refresh
- ↓
-R1 발급
- ↓
-R0 재사용 → 401
- ↓
-R1 refresh
- ↓
-R2 발급
- ↓
-R2 logout
- ↓
-R2 재사용 → 401
-```
-
-### 게시판 신청
-
-```text
-정상 신청
-최대 길이 정상 저장
-길이 초과 → 400
-검증 실패 시 DB 변경 없음
-본인 신청만 조회
-```
-
-### 게시판 승인
-
-```text
-USER 승인 요청 → 403
-ADMIN 승인 요청 → 성공
-Board 생성
-신청자 → Board owner
-PENDING → APPROVED
-재승인 → 409
-추가 Board 생성 없음
-```
-
-### 승인 롤백
-
-테스트 클래스 자체에는 `@Transactional`을 사용하지 않고  
-서비스 트랜잭션이 종료된 이후 DB 상태를 다시 조회합니다.
-
-```text
-Board 저장
- ↓
-강제 예외
- ↓
-ROLLBACK
- ↓
-Board 없음
-Application = PENDING
-```
+- 회원가입 / 로그인
+- 실제 JWT를 이용한 인증
+- 회원별 게시판 신청 데이터 분리
+- Refresh Token Rotation
+- 폐기된 Refresh Token 재사용 차단
+- 로그아웃 후 Refresh Token 재사용 차단
+- 입력값 검증 실패 시 DB 변경 여부
+- 일반 회원의 관리자 API 접근 거부
+- `ADMIN` 권한을 이용한 게시판 승인
+- 중복 승인 시 추가 Board 생성 방지
+- 동시 승인 요청 시 Board 중복 생성 방지
+- 승인 과정 실패 시 트랜잭션 롤백
 
 </details>
 
 ---
 
-## 다음 구현
+## 현재 한계
 
-- 게시판 개설 신청 거절
-- 게시판 목록 / 상세 조회
-- 게시글 / 댓글
-- 게시판별 관리자 기능
-- 서비스 운영자 권한 관리
-- 동시 승인 처리
+현재는 게시판 개설 신청과 승인 흐름을 중심으로 구현되어 있습니다.
+
+- 게시판 개설 신청 거절 기능은 아직 구현하지 않았습니다.
+- `ADMIN` 권한을 추가하거나 관리하는 API는 아직 구현하지 않았습니다.
+- 게시판 목록 / 상세 조회, 게시글, 댓글 기능은 아직 구현하지 않았습니다.
+- DB 스키마 변경은 별도의 Migration 도구 없이 Hibernate `ddl-auto=update`를 사용하고 있습니다.
