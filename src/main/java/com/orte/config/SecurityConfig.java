@@ -45,7 +45,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/board-applications/*/approve"
-                        ).hasRole("ADMIN")
+                        ).hasAnyRole(
+                                "ADMIN",
+                                "SUPER_ADMIN"
+                        )
 
                         .anyRequest().authenticated()
                 )
