@@ -39,14 +39,42 @@ public class Member {
             String password,
             String nickname
     ) {
+        this(
+                email,
+                password,
+                nickname,
+                MemberRole.USER
+        );
+    }
+
+    private Member(
+            String email,
+            String password,
+            String nickname,
+            MemberRole role
+    ) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.role = MemberRole.USER;
+        this.role = role;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public static Member createSuperAdmin(
+            String email,
+            String password,
+            String nickname
+    ) {
+        return new Member(
+                email,
+                password,
+                nickname,
+                MemberRole.SUPER_ADMIN
+        );
     }
 
     public void promoteToAdmin() {
         this.role = MemberRole.ADMIN;
     }
+
 }
